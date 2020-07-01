@@ -33,6 +33,7 @@ static int device_open(struct inode *inode, struct file *filep){
 }
 
 static ssize_t device_read(struct file* filep, char* bufStoreData, size_t bufCount, loff_t* curOffset){
+	if(*curOffset == 0){
 	int i;
 	int r;	
 	int random[3];
@@ -40,14 +41,36 @@ static ssize_t device_read(struct file* filep, char* bufStoreData, size_t bufCou
 	printk(KERN_INFO "Reading from device");
 	for(i=0; i<3; i++){
 		get_random_bytes(&r, sizeof(int));
-		r%=100;		
+		r%=100;
+		if(r<0){
+			r=-r;
+		}		
 		random[i]=r;
 	}
-	sprintf(txtbuff, "x %d\ny %d\nz %d\0", random[0], random[1], random[2]);
-	copy_to_user(bufStoreData, txtbuff, 15);
-	return 15;
-}
+	printk(KERN_INFO "%d", random[0]%10);
+	txtbuff[0]='x';
+	txtbuff[1]=' ';
+	txtbuff[2]=(random[0]%10)+'0';
+	txtbuff[3]=(random[0]/10)+'0';
+	txtbuff[4]='\n';
+	txtbuff[5]='y';
+	txtbuff[6]=' ';
+	txtbuff[7]=(random[1]%10)+'0';
+	txtbuff[8]=(random[1]/10)+'0';
+	txtbuff[9]='\n';
+	txtbuff[10]='z';
+	txtbuff[11]=' ';
+	txtbuff[12]=(random[2]%10)+'0';
+	txtbuff[13]=(random[2]/10)+'0';
+	txtbuff[14]='\0';
 
+
+	copy_to_user(bufStoreData, txtbuff, 15);
+	*curOffset=1;
+	return 15;
+	}
+	return 0;
+}
 
 static ssize_t device_write(struct file* filep, const char* bufSourceData, size_t bufCount, loff_t* curOffset){
 	printk(KERN_INFO "writing to device");
